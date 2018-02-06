@@ -4,6 +4,49 @@
 
 namespace maestro_fz1s {
 
+struct table1d { // 1-dimensional function table
+    float low;
+    float high;
+    float istep;
+    int size;
+    float data[];
+};
+
+template <int tab_size>
+struct table1d_imp {
+    float low;
+    float high;
+    float istep;
+    int size;
+    float data[tab_size];
+    operator table1d&() const { return *(table1d*)this; }
+};
+
+static table1d_imp<100> clip __rt_data = {
+	0.0,0.394515179396,101.97,100, {
+	0.0,0.00603015075129,0.0180904522522,0.0301507537469,0.0422110552265,0.0542713566722,
+	0.0663316580417,0.0783919592408,0.0904522600592,0.102512560027,0.114572858094,
+	0.126633151913,0.13869343624,0.15075369936,0.162813915089,0.174874024928,
+	0.18693389817,0.198993242803,0.21105140661,0.223106933614,0.235156577432,
+	0.247193118816,0.259200598174,0.271144190587,0.282950034925,0.294470641721,
+	0.305445189377,0.315505844416,0.324302375812,0.331685149347,0.337749693783,
+	0.34272268487,0.34684305184,0.350309449589,0.353272707062,0.355843964801,
+	0.35810490171,0.360116111787,0.361923194669,0.363561013504,0.365056646443,
+	0.366431442802,0.367702471426,0.368883554945,0.369986019104,0.371019243547,
+	0.371991072367,0.372908124189,0.373776029317,0.374599613231,0.375383040109,
+	0.37612992624,0.376843430486,0.377526327079,0.378181064683,0.37880981468,
+	0.379414510938,0.379996882771,0.380558482439,0.381100708226,0.381624823916,
+	0.382131975308,0.3826232043,0.38309946095,0.383561613855,0.384010459105,
+	0.384446728066,0.38487109414,0.385284178678,0.385686556167,0.386078758778,
+	0.386461280398,0.386834580178,0.387199085695,0.387555195759,0.387903282914,
+	0.388243695683,0.38857676057,0.38890278387,0.389222053284,0.389534839388,
+	0.389841396959,0.390141966168,0.390436773672,0.390726033604,0.39100994847,
+	0.391288709974,0.391562499764,0.391831490126,0.392095844606,0.392355718592,
+	0.392611259843,0.39286260898,0.393109899932,0.393353260356,0.393592812019,
+	0.393828671151,0.394060948779,0.394289751025,0.394515179396
+	}
+};
+
 class Dsp: public PluginLV2 {
 private:
 	uint32_t fSamplingFreq;
@@ -101,6 +144,7 @@ private:
 
 	static void clear_state_f_static(PluginLV2*);
 	static void init_static(uint32_t samplingFreq, PluginLV2*);
+	static double symclip(double x);
 	static void compute_static(int count, FAUSTFLOAT *input0, FAUSTFLOAT *output0, PluginLV2*);
 	static void del_instance(PluginLV2 *p);
 	static void connect_static(uint32_t port,void* data, PluginLV2 *p);
@@ -226,6 +270,21 @@ void Dsp::init_static(uint32_t samplingFreq, PluginLV2 *p)
 	static_cast<Dsp*>(p)->init(samplingFreq);
 }
 
+double always_inline Dsp::symclip(double x) {
+    double f = fabs(x);
+    f = f * clip.istep;
+    int i = static_cast<int>(f);
+    if (i < 0) {
+        f = clip.data[0];
+    } else if (i >= clip.size-1) {
+        f = clip.data[clip.size-1];
+    } else {
+	f -= i;
+	f = clip.data[i]*(1-f) + clip.data[i+1]*f;
+    }
+    return copysign(f, x);
+}
+
 void always_inline Dsp::compute(int count, FAUSTFLOAT *input0, FAUSTFLOAT *output0)
 {
 #define fslider0 (*fslider0_)
@@ -248,7 +307,7 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *input0, FAUSTFLOAT *outpu
 		double fTemp4 = (3.65236609304525e-17 + (5.37112660741948e-15 * fRec1[0]));
 		fRec5[0] = (fTemp2 - (((((fRec5[2] * (5.78630766099975e-08 + (fConst3 * (fConst61 + (fRec1[0] * (fConst60 + (fConst59 * fRec1[0]))))))) + (fRec5[1] * (3.8575384406665e-08 + (fConst0 * (fConst58 + (fRec1[0] * (1.15726153219995e-10 + (fConst3 * (fConst57 + (fConst56 * fRec1[0])))))))))) + (fRec5[3] * (3.8575384406665e-08 + (fConst0 * (fConst55 + (fRec1[0] * ((fConst3 * (fConst53 + (fConst51 * fRec1[0]))) - 1.15726153219995e-10))))))) + (fRec5[4] * (9.64384610166625e-09 + (fConst0 * (fConst49 + (fRec1[0] * ((fConst0 * (fConst48 + (fConst47 * fRec1[0]))) - 5.78630766099975e-11))))))) / fTemp3));
 		double fTemp5 = (7.3047321860905e-17 + (1.0742253214839e-14 * fRec1[0]));
-		double fTemp6 = max(-1.12, min(1.2, ((iSlow2)?(fConst62 * ((((fRec5[1] * (0 - fTemp5)) + ((fRec5[0] * fTemp4) + (fRec5[3] * fTemp5))) + (fRec5[4] * (0 - fTemp4))) / fTemp3)):(fConst40 * ((((7.60909602326433e-22 + (1.11898470930358e-19 * fRec1[0])) * (fRec2[5] + fRec2[0])) + (((1.52181920465287e-21 + (2.23796941860716e-19 * fRec1[0])) * (fRec2[2] + fRec2[3])) + ((0 - (2.2827288069793e-21 + (3.35695412791073e-19 * fRec1[0]))) * (fRec2[1] + fRec2[4])))) / fTemp0)))));
+		double fTemp6 = symclip(max(-1.12, min(1.2, ((iSlow2)?(fConst62 * ((((fRec5[1] * (0 - fTemp5)) + ((fRec5[0] * fTemp4) + (fRec5[3] * fTemp5))) + (fRec5[4] * (0 - fTemp4))) / fTemp3)):(fConst40 * ((((7.60909602326433e-22 + (1.11898470930358e-19 * fRec1[0])) * (fRec2[5] + fRec2[0])) + (((1.52181920465287e-21 + (2.23796941860716e-19 * fRec1[0])) * (fRec2[2] + fRec2[3])) + ((0 - (2.2827288069793e-21 + (3.35695412791073e-19 * fRec1[0]))) * (fRec2[1] + fRec2[4])))) / fTemp0))))));
 		double fTemp7 = ((int((fTemp6 < -0.72)))?(fTemp6 + (1.25 * faustpower<2>((0.72 + fTemp6)))):fTemp6);
 		double fTemp8 = ((int((fTemp7 > 0.8)))?(fTemp7 - (1.25 * faustpower<2>((fTemp7 - 0.8)))):fTemp7);
 		fRec6[0] = (fTemp8 - (fConst65 * fRec6[1]));
