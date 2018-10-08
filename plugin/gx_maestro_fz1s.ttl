@@ -125,7 +125,8 @@ rdfs:comment """
     ] .
 
 <http://guitarix.sourceforge.net/plugins/gx_maestro_fz1s_gui#_maestro_fz1s_>
-  a guiext:GtkUI;
+  a guiext:X11UI;
   guiext:binary <gx_maestro_fz1s_ui.so>;
-  guiext:requiredFeature guiext:makeResident;
+        lv2:extensionData guiext::idle ; 
+        lv2:requiredFeature guiext:makeResident;
   .
